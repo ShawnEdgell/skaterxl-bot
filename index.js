@@ -4,9 +4,9 @@ const axios = require('axios');
 
 const client = new Client({
   intents: [
-    GatewayIntentBits.Guilds, 
-    GatewayIntentBits.GuildMessages, 
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
   ],
 });
 
@@ -15,32 +15,33 @@ client.once('ready', () => {
 });
 
 client.on('messageCreate', async (message) => {
-  console.log(`Message received: ${message.content}`);  // Log received messages
+  console.log(`Message received: ${message.content}`); // Log received messages
   if (message.author.bot) return;
 
   if (message.content.startsWith('!ask')) {
     const user_input = message.content.replace('!ask', '').trim();
-    console.log(`User input: ${user_input}`);  // Log user input
+    console.log(`User input: ${user_input}`); // Log user input
 
     try {
       const response = await axios.post(
         'https://api.openai.com/v1/chat/completions',
         {
-          model: 'gpt-3.5-turbo',  // Use the latest supported model
-          messages: [{ role: "user", content: user_input }],
-          max_tokens: 150,
+          model: 'gpt-3.5-turbo', // Use the latest supported model
+          messages: [{ role: 'user', content: user_input }],
+          max_tokens: 40, // Lowered max tokens for shorter responses
+          temperature: 0.3, // Reduced temperature for more concise responses
         },
         {
           headers: {
-            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
             'Content-Type': 'application/json',
           },
         }
       );
-      console.log(`AI response: ${response.data.choices[0].message.content.trim()}`);  // Log AI response
+      console.log(`AI response: ${response.data.choices[0].message.content.trim()}`); // Log AI response
       message.reply(response.data.choices[0].message.content.trim());
     } catch (error) {
-      console.error("Error during API call:", error.response ? error.response.data : error.message);
+      console.error('Error during API call:', error.response ? error.response.data : error.message);
       message.reply('Sorry, something went wrong!');
     }
   }
