@@ -8,7 +8,7 @@ A simple Discord bot designed to assist with Skater XL modding questions.
 - **Discord.js**: Powerful library for interacting with the Discord API.
 - **Axios**: Promise-based HTTP client for making API requests.
 - **OpenAI API**: Used for generating responses with Chat GPT.
-- **Oracle Cloud (Coming Soon)**: Integration to keep the bot running 24/7.
+- **Oracle Cloud**: Integration to keep the bot running 24/7.
 
 ## Training
 
