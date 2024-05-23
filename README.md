@@ -1,6 +1,6 @@
 # skaterxl-bot
 
-A simple Discord bot designed to assist with Skater XL modding questions.
+A simple Discord bot powered by ChatGPT, designed to assist with Skater XL modding questions.
 
 ## Technologies Used
 
