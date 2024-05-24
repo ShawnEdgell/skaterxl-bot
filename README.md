@@ -1,4 +1,4 @@
-# skaterxl-bot
+# SkateBot
 
 A simple Discord bot powered by ChatGPT, designed to assist with Skater XL modding questions.
 
