@@ -28,7 +28,7 @@ client.on('messageCreate', async (message) => {
         {
           model: 'gpt-3.5-turbo', // Use the latest supported model
           messages: [{ role: 'user', content: user_input }],
-          max_tokens: 150, // Default max tokens
+          max_tokens: 300, // Default max tokens
           temperature: 0.7, // Default temperature
         },
         {
