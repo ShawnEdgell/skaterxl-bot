@@ -1,0 +1,5 @@
+services:
+  discord-bot:
+    image: stillmilky/skaterxl-bot-image:latest
+    container_name: skaterxl_discord_bot
+    restart: unless-stopped
