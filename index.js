@@ -1,12 +1,10 @@
 // index.js
 require("dotenv").config(); // Loads environment variables from .env file
 const { Client, GatewayIntentBits } = require("discord.js");
-const OpenAI = require("openai"); // Use the official OpenAI library
+const { GoogleGenerativeAI } = require("@google/generative-ai"); // Use the official Google Generative AI library
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize Google Generative AI client
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
 // Create a new Discord client
 const client = new Client({
@@ -49,21 +47,11 @@ client.on("messageCreate", async (message) => {
         fetchReply: true,
       });
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o", // Using a newer, capable model
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a helpful assistant knowledgeable about Skater XL and its modding community. Provide clear and concise answers.",
-          },
-          { role: "user", content: user_input },
-        ],
-        max_tokens: 300,
-        temperature: 0.7,
-      });
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-      const aiResponse = completion.choices[0]?.message?.content?.trim();
+      const result = await model.generateContent(user_input);
+      const response = await result.response;
+      const aiResponse = response.text();
 
       if (aiResponse) {
         console.log(`AI response: ${aiResponse}`);
@@ -84,16 +72,9 @@ client.on("messageCreate", async (message) => {
         }
       }
     } catch (error) {
-      console.error("Error during OpenAI API call:", error);
+      console.error("Error during Google Generative AI API call:", error);
       let errorMessage = "Sorry, something went wrong while talking to the AI!";
-      if (
-        error.response &&
-        error.response.data &&
-        error.response.data.error &&
-        error.response.data.error.message
-      ) {
-        errorMessage += `\nError: ${error.response.data.error.message}`;
-      } else if (error.message) {
+      if (error.message) {
         errorMessage += `\nError: ${error.message}`;
       }
 

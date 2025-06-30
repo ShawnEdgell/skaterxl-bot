@@ -1,5 +1,8 @@
 services:
   discord-bot:
-    image: stillmilky/skaterxl-bot-image:latest
+    build: .
     container_name: skaterxl_discord_bot
     restart: unless-stopped
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
