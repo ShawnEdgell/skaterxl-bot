@@ -1,5 +1,5 @@
 # Dockerfile for your Discord Bot
-FROM node:18-alpine
+FROM node:18-slim
 WORKDIR /usr/src/app
 COPY package*.json ./
 RUN npm install --omit=dev
