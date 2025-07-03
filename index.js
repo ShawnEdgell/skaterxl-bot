@@ -20,6 +20,9 @@ client.once("ready", () => {
   console.log(`Logged in as ${client.user.tag}!`);
 });
 
+// In-memory store for conversation histories
+const conversationHistories = new Map();
+
 // Listen for new messages
 client.on("messageCreate", async (message) => {
   console.log(
@@ -39,45 +42,92 @@ client.on("messageCreate", async (message) => {
       return;
     }
 
+    // Define the system prompt for the AI
+    const systemPrompt = `
+      You are an expert assistant for the Skater XL video game community. Your name is SkateBot.
+      Your primary purpose is to help users with questions related to installing, creating, and troubleshooting Skater XL mods.
+      You should be friendly, knowledgeable, and provide clear, step-by-step instructions when possible.
+      Always assume the user is asking a question in the context of Skater XL modding.
+    `;
+
     let thinkingMessage;
     try {
-      // Send a "Thinking..." message and store it to edit later
       thinkingMessage = await message.reply({
         content: "Thinking...",
         fetchReply: true,
       });
 
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const history = conversationHistories.get(message.channel.id) || [];
+      let aiResponse;
+      let updatedHistory;
 
-      const result = await model.generateContent(user_input);
-      const response = await result.response;
-      const aiResponse = response.text();
+      try {
+        // Attempt to use the primary model (gemini-2.5-pro)
+        console.log("Attempting to use gemini-2.5-pro...");
+        const proModel = genAI.getGenerativeModel({ model: "gemini-2.5-pro", systemInstruction: systemPrompt });
+        const proChat = proModel.startChat({ history });
+        const proResult = await proChat.sendMessage(user_input);
+        aiResponse = (await proResult.response).text();
+        updatedHistory = await proChat.getHistory();
+        console.log("Successfully used gemini-2.5-pro.");
+      } catch (proError) {
+        console.warn(
+          "gemini-2.5-pro failed. Attempting fallback to gemini-2.5-flash.",
+          proError
+        );
+        // If it fails, fall back to the flash model
+        const flashModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash", systemInstruction: systemPrompt });
+        const flashChat = flashModel.startChat({ history });
+        const flashResult = await flashChat.sendMessage(user_input);
+        aiResponse = (await flashResult.response).text();
+        updatedHistory = await flashChat.getHistory();
+        console.log("Successfully used fallback gemini-2.5-flash.");
+      }
+
+      // Update conversation history
+      if (updatedHistory) {
+        const prunedHistory = updatedHistory.slice(Math.max(0, updatedHistory.length - 20));
+        conversationHistories.set(message.channel.id, prunedHistory);
+      }
 
       if (aiResponse) {
         console.log(`AI response: ${aiResponse}`);
-        // Edit the "Thinking..." message with the actual response
+        // Split long messages into chunks
+        const messageChunks = [];
+        for (let i = 0; i < aiResponse.length; i += 1900) { // Use 1900 to be safe, leaving room for markdown
+          messageChunks.push(aiResponse.substring(i, i + 1900));
+        }
+
         if (thinkingMessage) {
-          await thinkingMessage.edit(aiResponse);
+          // Edit the first chunk into the thinking message
+          await thinkingMessage.edit(messageChunks[0]);
+          // Send subsequent chunks as new messages
+          for (let i = 1; i < messageChunks.length; i++) {
+            await message.channel.send(messageChunks[i]);
+          }
         } else {
-          message.reply(aiResponse); // Fallback if thinkingMessage wasn't sent/stored
+          // Fallback if thinkingMessage wasn't sent/stored
+          for (const chunk of messageChunks) {
+            await message.reply(chunk);
+          }
         }
       } else {
         console.error("AI response was empty or in an unexpected format.");
-        if (thinkingMessage) {
-          await thinkingMessage.edit(
-            "Sorry, I received an empty response from the AI."
-          );
-        } else {
-          message.reply("Sorry, I received an empty response from the AI.");
-        }
+        await thinkingMessage.edit(
+          "Sorry, I received an empty response from the AI."
+        );
       }
     } catch (error) {
-      console.error("Error during Google Generative AI API call:", error);
-      let errorMessage = "Sorry, something went wrong while talking to the AI!";
+      // This will catch errors if both models fail
+      console.error(
+        "Fatal error during Generative AI call (both primary and fallback failed):",
+        error
+      );
+      let errorMessage =
+        "Sorry, something went wrong while talking to the AI, and the fallback also failed!";
       if (error.message) {
         errorMessage += `\nError: ${error.message}`;
       }
-
       if (thinkingMessage) {
         await thinkingMessage.edit(errorMessage);
       } else {
